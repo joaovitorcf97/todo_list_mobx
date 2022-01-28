@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_mobx/flutter_mobx.dart';
+import 'package:mobx/mobx.dart';
 import 'package:todo_list_mobx/controllers/login_controller.dart';
 import '../widgets/custom_icon_button.dart';
 import '../widgets/custom_text_field.dart';
@@ -14,6 +16,18 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final LoginController controller = LoginController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    when((_) => controller.loggedIn, () {
+      // Navegar para a outra tela
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const ListScreen()),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,43 +54,57 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  CustomTextField(
-                    hint: 'E-mail',
-                    prefix: const Icon(Icons.account_circle),
-                    textInputType: TextInputType.emailAddress,
-                    onChanged: controller.setEmail,
-                    enabled: true,
-                  ),
+                  Observer(builder: (_) {
+                    return CustomTextField(
+                      hint: 'E-mail',
+                      prefix: const Icon(Icons.account_circle),
+                      textInputType: TextInputType.emailAddress,
+                      onChanged: controller.setEmail,
+                      enabled: !controller.loading,
+                    );
+                  }),
                   const SizedBox(height: 16),
-                  CustomTextField(
-                    hint: 'Senha',
-                    prefix: const Icon(Icons.lock),
-                    obscure: true,
-                    onChanged: controller.setPassword,
-                    enabled: true,
-                    suffix: CustomIconButton(
-                      radius: 32,
-                      iconData: Icons.visibility,
-                      onTap: controller.togglePasswordVisible,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(32),
-                      ),
-                      primary: Theme.of(context).primaryColor,
-                      textStyle: const TextStyle(color: Colors.white),
-                      padding: const EdgeInsets.all(12),
-                    ),
-                    child: const Text('Login'),
-                    onPressed: () {
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute(builder: (_) => const ListScreen()),
+                  Observer(
+                    builder: (_) {
+                      return CustomTextField(
+                        hint: 'Senha',
+                        prefix: const Icon(Icons.lock),
+                        obscure: !controller.passwordVisible,
+                        onChanged: controller.setPassword,
+                        enabled: !controller.loading,
+                        suffix: CustomIconButton(
+                          radius: 32,
+                          iconData: controller.passwordVisible ? Icons.visibility_off : Icons.visibility,
+                          onTap: controller.togglePasswordVisible,
+                        ),
                       );
                     },
-                  )
+                  ),
+                  const SizedBox(height: 16),
+                  Observer(builder: (_) {
+                    return ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(32),
+                        ),
+                        primary: Theme.of(context).primaryColor,
+                        textStyle: const TextStyle(color: Colors.white),
+                        padding: const EdgeInsets.all(12),
+                      ),
+                      child: controller.loading
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                valueColor: AlwaysStoppedAnimation(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text('Login'),
+                      onPressed: controller.isFormValid ? controller.login : null,
+                    );
+                  })
                 ],
               ),
             ),
